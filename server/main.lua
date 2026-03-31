@@ -29,14 +29,15 @@ CreateThread(function()
     local tableName = (framework == 'esx') and 'users' or 'players'
     
     local cols = MySQL.query.await(('SHOW COLUMNS FROM `%s`'):format(tableName))
-    local hasMugshot, hasDiscord, hasFivem, hasSteam = false, false, false, false
+    local hasMugshot, hasDiscord, hasFivem, hasSteam, hasLicense = false, false, false, false, false
 
     for i = 1, #cols do
         local colName = cols[i].Field
         if colName == "mugshot" then hasMugshot = true
         elseif colName == "discord" then hasDiscord = true
         elseif colName == "fivem" then hasFivem = true
-        elseif colName == "steam" then hasSteam = true end
+        elseif colName == "steam" then hasSteam = true
+        elseif colName == "license" then hasLicense = true end
     end
 
     if not hasMugshot then
@@ -55,6 +56,10 @@ CreateThread(function()
         MySQL.query.await(('ALTER TABLE `%s` ADD COLUMN `steam` VARCHAR(50) DEFAULT NULL'):format(tableName))
         if config.prints then lib.print.info(('Injected "steam" column into `%s` table.'):format(tableName)) end
     end
+    if not hasLicense then
+        MySQL.query.await(('ALTER TABLE `%s` ADD COLUMN `license` VARCHAR(50) DEFAULT NULL'):format(tableName))
+        if config.prints then lib.print.info(('Injected "license" column into `%s` table.'):format(tableName)) end
+    end
 
     if config.prints then lib.print.info("Database verified and ready.") end
 end)
@@ -63,12 +68,13 @@ local function ExtractIdentifiers(src)
     local discord = GetPlayerIdentifierByType(src, 'discord') or ""
     local fivem = GetPlayerIdentifierByType(src, 'fivem') or ""
     local steam = GetPlayerIdentifierByType(src, 'steam') or ""
-    return discord, fivem, steam
+    local license = GetPlayerIdentifierByType(src, 'license') or ""
+    return discord, fivem, steam, license
 end
 
 local function HandlePlayerLoaded(src, identifier, tableTarget, identifierColumn)
-    local discord, fivem, steam = ExtractIdentifiers(src)
-    MySQL.update(('UPDATE %s SET discord = ?, fivem = ?, steam = ? WHERE %s = ?'):format(tableTarget, identifierColumn), {discord, fivem, steam, identifier})
+    local discord, fivem, steam, license = ExtractIdentifiers(src)
+    MySQL.update(('UPDATE %s SET discord = ?, fivem = ?, steam = ?, license = ? WHERE %s = ?'):format(tableTarget, identifierColumn), {discord, fivem, steam, license, identifier})
 end
 
 RegisterNetEvent('QBCore:Server:OnPlayerLoaded', function()
